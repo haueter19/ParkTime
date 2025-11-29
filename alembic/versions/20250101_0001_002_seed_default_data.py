@@ -98,7 +98,7 @@ def upgrade() -> None:
             {'code': 'HOLIDAY', 'description': 'Holiday', 'code_type': 'leave_paid', 'sort_order': 13, 'is_active': True, 'created_at': datetime.now(), 'created_by': 1},
             {'code': 'JURY', 'description': 'Jury Duty', 'code_type': 'leave_paid', 'sort_order': 14, 'is_active': True, 'created_at': datetime.now(), 'created_by': 1},
             {'code': 'BEREAVEMENT', 'description': 'Bereavement', 'code_type': 'leave_paid', 'sort_order': 15, 'is_active': True, 'created_at': datetime.now(), 'created_by': 1},
-            {'code': 'LWOP', 'description': 'Leave Without Pay', 'code_type': 'leave_unpaid', 'sort_order': 20, 'is_active': True, 'created_at': datetime.now(), 'created_by': 1},
+            {'code': 'AWOP', 'description': 'Absence Without Pay', 'code_type': 'leave_unpaid', 'sort_order': 20, 'is_active': True, 'created_at': datetime.now(), 'created_by': 1},
         ]
     )
     

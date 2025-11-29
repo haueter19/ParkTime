@@ -9,6 +9,7 @@ This module configures Alembic to:
 
 from logging.config import fileConfig
 
+import sqlalchemy as sa
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
@@ -36,7 +37,19 @@ target_metadata = Base.metadata
 
 # Get database URL from app config
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.database_url)
+
+# Use set_main_option with raw=True to avoid interpolation issues
+if config.config_ini_section:
+    # ConfigParser will treat '%' specially (interpolation) so double any
+    # percent characters to escape them before writing to the section.
+    config.set_section_option(
+        config.config_ini_section,
+        "sqlalchemy.url",
+        settings.database_url.replace('%', '%%'),
+    )
+else:
+    # Fallback: modify the config parser directly with raw interpolation disabled
+    config.set_main_option("sqlalchemy.url", settings.database_url.replace('%', '%%'))
 
 
 def run_migrations_offline() -> None:
@@ -82,6 +95,26 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        # If a schema is configured, try to ensure it exists before Alembic
+        # creates the alembic_version table in that schema. If we cannot
+        # create/use the schema (lack of permission), fall back to using the
+        # default schema for the version table so migrations can proceed.
+        version_table_schema = settings.db_schema
+        if version_table_schema:
+            try:
+                connection.execute(
+                    sa.text("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = :s) EXEC('CREATE SCHEMA %s')" % version_table_schema)
+                )
+            except Exception:
+                # Could not create or use the schema (permissions etc.) —
+                # log and fallback to default schema for alembic_version
+                import logging
+                logging.getLogger("alembic.env").warning(
+                    "Unable to create/use schema '%s' for alembic_version; falling back to default schema",
+                    version_table_schema,
+                )
+                version_table_schema = None
+
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
@@ -89,8 +122,8 @@ def run_migrations_online() -> None:
             compare_type=True,
             compare_server_default=True,
             # Include schema from metadata
-            include_schemas=False,
-            version_table_schema=settings.db_schema,
+            include_schemas=True,
+            version_table_schema=version_table_schema,
         )
 
         with context.begin_transaction():

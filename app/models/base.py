@@ -3,13 +3,21 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, Integer, ForeignKey
+from sqlalchemy import DateTime, Integer, ForeignKey, MetaData
+from app.config import get_settings
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, declared_attr
+
+
+settings = get_settings()
+SCHEMA = settings.db_schema
+
+# Use a metadata instance with a default schema so models and Alembic agree
+_metadata = MetaData(schema=SCHEMA) if SCHEMA else MetaData()
 
 
 class Base(DeclarativeBase):
     """Base class for all models."""
-    pass
+    metadata = _metadata
 
 
 class TimestampMixin:
@@ -17,7 +25,7 @@ class TimestampMixin:
     
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow,
+        default=datetime.now,
         nullable=False
     )
 
