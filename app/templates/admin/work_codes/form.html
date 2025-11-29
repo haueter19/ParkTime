@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if work_code else 'New' }} Work Code - ParkTime Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-{% if work_code %}pencil{% else %}plus-circle{% endif %} me-2"></i>
+                    {{ 'Edit Work Code' if work_code else 'New Work Code' }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if errors %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    <strong>Please fix the following:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for error in errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <form method="post" action="{{ form_action }}">
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Code</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="code" 
+                               name="code"
+                               value="{{ work_code.code if work_code else (form_data.code if form_data else '') }}"
+                               required
+                               maxlength="20"
+                               style="text-transform: uppercase;">
+                        <div class="form-text">Short code (e.g., REG, OT, VAC). Max 20 characters.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="description" 
+                               name="description"
+                               value="{{ work_code.description if work_code else (form_data.description if form_data else '') }}"
+                               required
+                               maxlength="100">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="code_type" class="form-label">Type</label>
+                        <select class="form-select" id="code_type" name="code_type" required>
+                            {% set current_type = work_code.code_type if work_code else (form_data.code_type if form_data else 'work') %}
+                            <option value="work" {% if current_type == 'work' %}selected{% endif %}>
+                                Work - Regular work hours
+                            </option>
+                            <option value="leave_paid" {% if current_type == 'leave_paid' %}selected{% endif %}>
+                                Paid Leave - Vacation, sick, holiday, etc.
+                            </option>
+                            <option value="leave_unpaid" {% if current_type == 'leave_unpaid' %}selected{% endif %}>
+                                Unpaid Leave - Leave without pay
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sort_order" class="form-label">Sort Order</label>
+                        <input type="number" 
+                               class="form-control" 
+                               id="sort_order" 
+                               name="sort_order"
+                               value="{{ work_code.sort_order if work_code else (form_data.sort_order if form_data else 0) }}"
+                               min="0"
+                               max="999">
+                        <div class="form-text">Lower numbers appear first in dropdowns.</div>
+                    </div>
+                    
+                    {% if work_code %}
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="is_active" 
+                                   name="is_active"
+                                   value="true"
+                                   {% if work_code.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">
+                                Active
+                            </label>
+                        </div>
+                        <div class="form-text">Inactive codes won't appear in dropdowns but existing entries are preserved.</div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>
+                            {{ 'Update Code' if work_code else 'Create Code' }}
+                        </button>
+                        <a href="/admin/work-codes" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if employee else 'New' }} Employee - ParkTime Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-{% if employee %}pencil{% else %}person-plus{% endif %} me-2"></i>
+                    {{ 'Edit Employee' if employee else 'New Employee' }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if errors %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    <strong>Please fix the following:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for error in errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <form method="post" action="{{ form_action }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="username" 
+                               name="username"
+                               value="{{ employee.username if employee else (form_data.username if form_data else '') }}"
+                               required
+                               pattern="[a-zA-Z0-9_.]+"
+                               title="Letters, numbers, underscores, and periods only">
+                        <div class="form-text">Used for login. Letters, numbers, underscores, periods only.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="display_name" class="form-label">Display Name</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="display_name" 
+                               name="display_name"
+                               value="{{ employee.display_name if employee else (form_data.display_name if form_data else '') }}"
+                               required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email <span class="text-muted">(optional)</span></label>
+                        <input type="email" 
+                               class="form-control" 
+                               id="email" 
+                               name="email"
+                               value="{{ employee.email if employee else (form_data.email if form_data else '') }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <select class="form-select" id="role" name="role" required>
+                            {% set current_role = employee.role if employee else (form_data.role if form_data else 'employee') %}
+                            <option value="employee" {% if current_role == 'employee' %}selected{% endif %}>
+                                Employee - Can manage own time entries
+                            </option>
+                            <option value="manager" {% if current_role == 'manager' %}selected{% endif %}>
+                                Manager - Can manage team time entries
+                            </option>
+                            <option value="admin" {% if current_role == 'admin' %}selected{% endif %}>
+                                Admin - Full system access
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="manager_id" class="form-label">Reports To <span class="text-muted">(optional)</span></label>
+                        <select class="form-select" id="manager_id" name="manager_id">
+                            <option value="">No manager</option>
+                            {% set current_manager = employee.manager_id if employee else (form_data.manager_id if form_data else None) %}
+                            {% for mgr in managers %}
+                            <option value="{{ mgr.employee_id }}" {% if current_manager == mgr.employee_id %}selected{% endif %}>
+                                {{ mgr.display_name }} ({{ mgr.role }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    {% if employee %}
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="is_active" 
+                                   name="is_active"
+                                   value="true"
+                                   {% if employee.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">
+                                Active
+                            </label>
+                        </div>
+                        <div class="form-text">Inactive employees cannot log in</div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>
+                            {{ 'Update Employee' if employee else 'Create Employee' }}
+                        </button>
+                        <a href="/admin/employees" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if not employee %}
+        <div class="card mt-3">
+            <div class="card-body">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    After creating the employee, you'll need to set their password 
+                    from the employee detail page.
+                </small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

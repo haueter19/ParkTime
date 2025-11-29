@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ rule.rule_key }} - ParkTime Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil me-2"></i>Edit Business Rule
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if errors %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    <strong>Please fix the following:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for error in errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Setting Key</label>
+                    <div><code class="fs-5">{{ rule.rule_key }}</code></div>
+                </div>
+                
+                {% if rule.description %}
+                <div class="mb-3">
+                    <label class="form-label text-muted">Description</label>
+                    <div>{{ rule.description }}</div>
+                </div>
+                {% endif %}
+                
+                <form method="post" action="/admin/business-rules/{{ rule.rule_id }}">
+                    <div class="mb-4">
+                        <label for="rule_value" class="form-label">Value</label>
+                        
+                        {% if rule.value_type == 'boolean' %}
+                        <select class="form-select" id="rule_value" name="rule_value" required>
+                            <option value="true" {% if rule.rule_value.lower() in ('true', '1', 'yes') %}selected{% endif %}>
+                                Yes / True
+                            </option>
+                            <option value="false" {% if rule.rule_value.lower() in ('false', '0', 'no') %}selected{% endif %}>
+                                No / False
+                            </option>
+                        </select>
+                        
+                        {% elif rule.value_type == 'choice' and rule.valid_options %}
+                        <select class="form-select" id="rule_value" name="rule_value" required>
+                            {% for option in rule.valid_options.split(',') %}
+                            <option value="{{ option.strip() }}" {% if rule.rule_value == option.strip() %}selected{% endif %}>
+                                {{ option.strip() }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Valid options: {{ rule.valid_options }}</div>
+                        
+                        {% elif rule.value_type == 'integer' %}
+                        <input type="number" 
+                               class="form-control" 
+                               id="rule_value" 
+                               name="rule_value"
+                               value="{{ rule.rule_value }}"
+                               required>
+                        
+                        {% else %}
+                        <input type="text" 
+                               class="form-control" 
+                               id="rule_value" 
+                               name="rule_value"
+                               value="{{ rule.rule_value }}"
+                               required>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Save Changes
+                        </button>
+                        <a href="/admin/business-rules" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>Last modified:</strong> 
+                    {{ rule.modified_at.strftime('%b %d, %Y at %I:%M %p') }}
+                    by {{ rule.modifier.display_name }}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

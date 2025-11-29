@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Business Rules - ParkTime Admin{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-sliders me-2"></i>Business Rules
+    </h1>
+    <small class="text-muted">System configuration settings</small>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Setting</th>
+                    <th>Value</th>
+                    <th>Description</th>
+                    <th style="width: 100px;">Type</th>
+                    <th style="width: 80px;" class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rule in rules %}
+                <tr>
+                    <td>
+                        <code>{{ rule.rule_key }}</code>
+                    </td>
+                    <td>
+                        {% if rule.value_type == 'boolean' %}
+                            {% if rule.rule_value.lower() in ('true', '1', 'yes') %}
+                            <span class="badge bg-success">Yes</span>
+                            {% else %}
+                            <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        {% elif rule.value_type == 'choice' %}
+                        <span class="badge bg-info">{{ rule.rule_value }}</span>
+                        {% else %}
+                        <strong>{{ rule.rule_value }}</strong>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted small">{{ rule.description or '—' }}</td>
+                    <td>
+                        <span class="badge bg-light text-dark">{{ rule.value_type }}</span>
+                    </td>
+                    <td class="text-end">
+                        <a href="/admin/business-rules/{{ rule.rule_id }}/edit" 
+                           class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        No business rules configured
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h6><i class="bi bi-info-circle me-2"></i>About Business Rules</h6>
+        <p class="mb-0 text-muted small">
+            Business rules control how the time tracking system behaves. Changes take effect immediately.
+            Only administrators can modify these settings. All changes are recorded in the audit log.
+        </p>
+    </div>
+</div>
+{% endblock %}

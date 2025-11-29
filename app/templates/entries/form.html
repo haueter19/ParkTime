@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Entry' if entry else 'New Entry' }} - ParkTime{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-{% if entry %}pencil{% else %}plus-circle{% endif %} me-2"></i>
+                    {{ 'Edit Time Entry' if entry else 'New Time Entry' }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if errors %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    <strong>Please fix the following:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for error in errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <form method="post" action="{{ form_action }}">
+                    {% if form_method == 'put' %}
+                    {# HTML forms only support GET/POST, but our route handles both #}
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="entry_date" class="form-label">Date</label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="entry_date" 
+                               name="entry_date"
+                               value="{{ (entry.entry_date if entry else default_date).isoformat() }}"
+                               required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="work_code_id" class="form-label">Work Code</label>
+                        <select class="form-select" id="work_code_id" name="work_code_id" required>
+                            <option value="">Select a code...</option>
+                            
+                            {% set current_type = None %}
+                            {% for code in work_codes %}
+                                {% if code.code_type != current_type %}
+                                    {% if current_type is not none %}</optgroup>{% endif %}
+                                    {% set current_type = code.code_type %}
+                                    <optgroup label="{{ code.code_type|replace('_', ' ')|title }}">
+                                {% endif %}
+                                
+                                <option value="{{ code.work_code_id }}"
+                                        {% if entry and entry.work_code_id == code.work_code_id %}selected
+                                        {% elif form_data and form_data.work_code_id == code.work_code_id %}selected{% endif %}>
+                                    {{ code.code }} - {{ code.description }}
+                                </option>
+                            {% endfor %}
+                            {% if current_type is not none %}</optgroup>{% endif %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="hours" class="form-label">Hours</label>
+                        <input type="number" 
+                               class="form-control" 
+                               id="hours" 
+                               name="hours"
+                               value="{{ entry.hours if entry else (form_data.hours if form_data else '8.0') }}"
+                               step="0.25"
+                               min="0.25"
+                               max="24"
+                               required>
+                        <div class="form-text">Enter hours in increments of 0.25 (15 minutes)</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">Notes <span class="text-muted">(optional)</span></label>
+                        <textarea class="form-control" 
+                                  id="notes" 
+                                  name="notes"
+                                  rows="2"
+                                  placeholder="Project, task description, etc.">{{ entry.notes if entry else (form_data.notes if form_data else '') }}</textarea>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>
+                            {{ 'Update Entry' if entry else 'Create Entry' }}
+                        </button>
+                        <a href="/entries{% if entry %}?week_of={{ entry.entry_date.isoformat() }}{% endif %}" 
+                           class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if entry %}
+        <div class="card mt-3">
+            <div class="card-body">
+                <small class="text-muted">
+                    Created {{ entry.created_at.strftime('%b %d, %Y at %I:%M %p') }}
+                    {% if entry.modified_at %}
+                    <br>Last modified {{ entry.modified_at.strftime('%b %d, %Y at %I:%M %p') }}
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{# Single entry row - used for HTMX swaps #}
+<div class="entry-row" id="entry-{{ entry.entry_id }}">
+    <span class="entry-code">
+        <span class="badge 
+            {% if entry.work_code.code_type == 'work' %}bg-primary
+            {% elif entry.work_code.code_type == 'leave_paid' %}bg-success
+            {% else %}bg-secondary{% endif %}">
+            {{ entry.work_code.code }}
+        </span>
+    </span>
+    
+    <span class="entry-hours">{{ "%.1f"|format(entry.hours) }} hrs</span>
+    
+    <span class="entry-notes">
+        {% if entry.notes %}
+        {{ entry.notes }}
+        {% else %}
+        <em class="text-muted">—</em>
+        {% endif %}
+    </span>
+    
+    <div class="entry-actions">
+        <button class="btn btn-sm btn-outline-secondary"
+                hx-get="/entries/{{ entry.entry_id }}/edit"
+                hx-target="#entry-{{ entry.entry_id }}"
+                hx-swap="outerHTML"
+                title="Edit">
+            <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-danger"
+                hx-delete="/entries/{{ entry.entry_id }}"
+                hx-target="#entry-{{ entry.entry_id }}"
+                hx-swap="outerHTML"
+                hx-confirm="Delete this entry?"
+                title="Delete">
+            <i class="bi bi-trash"></i>
+        </button>
+    </div>
+</div>

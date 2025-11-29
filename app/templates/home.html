@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Home - ParkTime{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-house me-2"></i>Welcome, {{ user.display_name }}
+        </h1>
+        
+        <div class="row g-4">
+            <!-- Quick Actions -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-plus-circle text-primary me-2"></i>Quick Entry
+                        </h5>
+                        <p class="card-text text-muted">
+                            Add a new time entry for today.
+                        </p>
+                        <a href="/entries/new" class="btn btn-primary">
+                            <i class="bi bi-plus me-1"></i>Add Time
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-calendar3 text-primary me-2"></i>My Timesheet
+                        </h5>
+                        <p class="card-text text-muted">
+                            View and edit your time entries.
+                        </p>
+                        <a href="/entries" class="btn btn-outline-primary">
+                            <i class="bi bi-list me-1"></i>View Entries
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-bar-chart text-primary me-2"></i>Reports
+                        </h5>
+                        <p class="card-text text-muted">
+                            View your hours summary.
+                        </p>
+                        <a href="/reports" class="btn btn-outline-primary">
+                            <i class="bi bi-graph-up me-1"></i>View Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            {% if user.is_manager %}
+            <!-- Manager Section -->
+            <div class="col-12">
+                <hr class="my-4">
+                <h4 class="mb-3">
+                    <i class="bi bi-people me-2"></i>Team Management
+                </h4>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-info">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-people-fill text-info me-2"></i>Team Time
+                        </h5>
+                        <p class="card-text text-muted">
+                            Review time entries for your team.
+                        </p>
+                        <a href="/team" class="btn btn-outline-info">
+                            <i class="bi bi-eye me-1"></i>View Team
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if user.is_admin %}
+            <!-- Admin Section -->
+            <div class="col-12">
+                <hr class="my-4">
+                <h4 class="mb-3">
+                    <i class="bi bi-gear me-2"></i>Administration
+                </h4>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-person-badge text-warning me-2"></i>Employees
+                        </h5>
+                        <p class="card-text text-muted small">
+                            Manage employee accounts.
+                        </p>
+                        <a href="/admin/employees" class="btn btn-sm btn-outline-warning">Manage</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-tags text-warning me-2"></i>Work Codes
+                        </h5>
+                        <p class="card-text text-muted small">
+                            Configure time categories.
+                        </p>
+                        <a href="/admin/work-codes" class="btn btn-sm btn-outline-warning">Manage</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-sliders text-warning me-2"></i>Settings
+                        </h5>
+                        <p class="card-text text-muted small">
+                            Business rules configuration.
+                        </p>
+                        <a href="/admin/business-rules" class="btn btn-sm btn-outline-warning">Manage</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-journal-text text-warning me-2"></i>Audit Log
+                        </h5>
+                        <p class="card-text text-muted small">
+                            View system activity.
+                        </p>
+                        <a href="/admin/audit-log" class="btn btn-sm btn-outline-warning">View</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

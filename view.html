@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}{{ employee.display_name }} - ParkTime Admin{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/admin/employees">Employees</a></li>
+            <li class="breadcrumb-item active">{{ employee.display_name }}</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Employee Info Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-person me-2"></i>{{ employee.display_name }}
+                </h5>
+                <a href="/admin/employees/{{ employee.employee_id }}/edit" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil me-1"></i>Edit
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label text-muted small">Username</label>
+                        <div><code>{{ employee.username }}</code></div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label text-muted small">Email</label>
+                        <div>{{ employee.email or '—' }}</div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label text-muted small">Role</label>
+                        <div>
+                            <span class="badge 
+                                {% if employee.role == 'admin' %}bg-danger
+                                {% elif employee.role == 'manager' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                {{ employee.role }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label text-muted small">Status</label>
+                        <div>
+                            {% if employee.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label text-muted small">Reports To</label>
+                        <div>
+                            {% if employee.manager %}
+                            <a href="/admin/employees/{{ employee.manager.employee_id }}">
+                                {{ employee.manager.display_name }}
+                            </a>
+                            {% else %}
+                            —
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label text-muted small">Direct Reports</label>
+                        <div>
+                            {% if employee.direct_reports %}
+                            {{ employee.direct_reports|length }} employee{{ 's' if employee.direct_reports|length != 1 else '' }}
+                            {% else %}
+                            None
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label text-muted small">Created</label>
+                        <div>{{ employee.created_at.strftime('%b %d, %Y') }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label text-muted small">Password</label>
+                        <div>
+                            {% if employee.password_hash %}
+                            <span class="text-success"><i class="bi bi-check-circle me-1"></i>Set</span>
+                            {% else %}
+                            <span class="text-danger"><i class="bi bi-x-circle me-1"></i>Not set</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Time Entries -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Recent Time Entries</h6>
+            </div>
+            <div class="card-body">
+                {% if recent_entries %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Code</th>
+                                <th>Hours</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in recent_entries %}
+                            <tr>
+                                <td>{{ entry.entry_date.strftime('%b %d, %Y') }}</td>
+                                <td><span class="badge bg-secondary">{{ entry.work_code.code }}</span></td>
+                                <td>{{ "%.1f"|format(entry.hours) }}</td>
+                                <td class="text-muted small">{{ entry.notes or '—' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No recent time entries</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Audit History -->
+        {% if audit_history %}
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Change History</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Action</th>
+                                <th>Changed By</th>
+                                <th>Changes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for audit in audit_history %}
+                            <tr>
+                                <td>{{ audit.performed_at.strftime('%b %d, %Y %H:%M') }}</td>
+                                <td><span class="badge bg-secondary">{{ audit.action }}</span></td>
+                                <td>{{ audit.performer.display_name }}</td>
+                                <td class="small">{{ audit.changed_fields or '—' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Password Reset Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-key me-2"></i>Reset Password</h6>
+            </div>
+            <div class="card-body">
+                {% if request.query_params.get('password_reset') == 'success' %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-1"></i>Password has been reset
+                </div>
+                {% endif %}
+                
+                {% if password_errors %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for error in password_errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <form method="post" action="/admin/employees/{{ employee.employee_id }}/reset-password">
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">New Password</label>
+                        <input type="password" 
+                               class="form-control" 
+                               id="new_password" 
+                               name="new_password"
+                               required
+                               minlength="8">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" 
+                               class="form-control" 
+                               id="confirm_password" 
+                               name="confirm_password"
+                               required
+                               minlength="8">
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="bi bi-key me-1"></i>Reset Password
+                    </button>
+                </form>
+                <small class="text-muted mt-2 d-block">
+                    This will invalidate all existing sessions for this user.
+                </small>
+            </div>
+        </div>
+        
+        <!-- Direct Reports -->
+        {% if employee.direct_reports %}
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-people me-2"></i>Direct Reports</h6>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for report in employee.direct_reports %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="/admin/employees/{{ report.employee_id }}">{{ report.display_name }}</a>
+                    <span class="badge bg-secondary">{{ report.role }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

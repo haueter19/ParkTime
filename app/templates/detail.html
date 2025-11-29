@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Entry #{{ entry.audit_id }} - ParkTime Admin{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/admin/audit-log">Audit Log</a></li>
+            <li class="breadcrumb-item active">Entry #{{ entry.audit_id }}</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <span class="badge 
+                        {% if entry.action == 'INSERT' %}bg-success
+                        {% elif entry.action == 'UPDATE' %}bg-primary
+                        {% elif entry.action == 'DELETE' %}bg-danger
+                        {% else %}bg-secondary{% endif %} me-2">
+                        {{ entry.action }}
+                    </span>
+                    {{ entry.table_name }} #{{ entry.record_id }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label text-muted small">Date/Time</label>
+                        <div>{{ entry.performed_at.strftime('%B %d, %Y at %I:%M:%S %p') }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label text-muted small">Performed By</label>
+                        <div>
+                            <a href="/admin/employees/{{ entry.performer.employee_id }}">
+                                {{ entry.performer.display_name }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if entry.ip_address %}
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label text-muted small">IP Address</label>
+                        <div><code>{{ entry.ip_address }}</code></div>
+                    </div>
+                    {% if entry.context %}
+                    <div class="col-sm-6">
+                        <label class="form-label text-muted small">Context</label>
+                        <div>{{ entry.context }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                {% if entry.changed_fields %}
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Changed Fields</label>
+                    <div>
+                        {% for field in entry.changed_fields.split(',') %}
+                        <span class="badge bg-light text-dark me-1">{{ field.strip() }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Values Comparison -->
+        <div class="row">
+            {% if entry.old_values %}
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h6 class="mb-0"><i class="bi bi-dash-circle me-2"></i>Old Values</h6>
+                    </div>
+                    <div class="card-body">
+                        <pre class="mb-0 small" style="white-space: pre-wrap;">{{ entry.old_values }}</pre>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if entry.new_values %}
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="bi bi-plus-circle me-2"></i>New Values</h6>
+                    </div>
+                    <div class="card-body">
+                        <pre class="mb-0 small" style="white-space: pre-wrap;">{{ entry.new_values }}</pre>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Entry Metadata</h6>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Audit ID</span>
+                    <strong>{{ entry.audit_id }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Table</span>
+                    <code>{{ entry.table_name }}</code>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Record ID</span>
+                    <strong>{{ entry.record_id }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Action</span>
+                    <span class="badge 
+                        {% if entry.action == 'INSERT' %}bg-success
+                        {% elif entry.action == 'UPDATE' %}bg-primary
+                        {% elif entry.action == 'DELETE' %}bg-danger
+                        {% else %}bg-secondary{% endif %}">
+                        {{ entry.action }}
+                    </span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

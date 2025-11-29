@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log - ParkTime Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">
+            <i class="bi bi-journal-text me-2"></i>Audit Log
+        </h1>
+        <small class="text-muted">{{ entries|length }} entries in the last {{ filters.days }} days</small>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" action="/admin/audit-log" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Table</label>
+                <select name="table_name" class="form-select form-select-sm">
+                    <option value="">All tables</option>
+                    {% for t in tables %}
+                    <option value="{{ t }}" {% if filters.table_name == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Action</label>
+                <select name="action" class="form-select form-select-sm">
+                    <option value="">All actions</option>
+                    {% for a in actions %}
+                    <option value="{{ a }}" {% if filters.action == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Changed By</label>
+                <select name="performed_by" class="form-select form-select-sm">
+                    <option value="">Anyone</option>
+                    {% for emp in employees %}
+                    <option value="{{ emp.employee_id }}" {% if filters.performed_by == emp.employee_id %}selected{% endif %}>
+                        {{ emp.display_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Days</label>
+                <select name="days" class="form-select form-select-sm">
+                    {% for d in [1, 7, 14, 30, 60, 90] %}
+                    <option value="{{ d }}" {% if filters.days == d %}selected{% endif %}>{{ d }} days</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-funnel me-1"></i>Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Audit Entries -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 150px;">Date/Time</th>
+                    <th style="width: 120px;">Table</th>
+                    <th style="width: 80px;">Action</th>
+                    <th style="width: 80px;">Record</th>
+                    <th>Changed By</th>
+                    <th>Changes</th>
+                    <th style="width: 60px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td class="small">
+                        {{ entry.performed_at.strftime('%b %d %H:%M') }}
+                    </td>
+                    <td>
+                        <code class="small">{{ entry.table_name }}</code>
+                    </td>
+                    <td>
+                        <span class="badge 
+                            {% if entry.action == 'INSERT' %}bg-success
+                            {% elif entry.action == 'UPDATE' %}bg-primary
+                            {% elif entry.action == 'DELETE' %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {{ entry.action }}
+                        </span>
+                    </td>
+                    <td class="small">
+                        #{{ entry.record_id }}
+                    </td>
+                    <td>
+                        {{ entry.performer.display_name }}
+                    </td>
+                    <td class="small text-muted text-truncate" style="max-width: 200px;">
+                        {{ entry.changed_fields or '—' }}
+                    </td>
+                    <td>
+                        <a href="/admin/audit-log/{{ entry.audit_id }}" 
+                           class="btn btn-sm btn-outline-secondary"
+                           title="View details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        No audit entries found for the selected filters
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if entries|length >= 500 %}
+<div class="alert alert-info mt-3">
+    <i class="bi bi-info-circle me-1"></i>
+    Showing maximum 500 entries. Use filters to narrow results.
+</div>
+{% endif %}
+{% endblock %}

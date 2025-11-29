@@ -1,0 +1,58 @@
+{# Inline edit form row - replaces the display row #}
+<form class="entry-row" id="entry-{{ entry.entry_id }}"
+      hx-put="/entries/{{ entry.entry_id }}"
+      hx-target="#entry-{{ entry.entry_id }}"
+      hx-swap="outerHTML">
+    
+    <input type="hidden" name="entry_date" value="{{ entry.entry_date.isoformat() }}">
+    
+    <span class="entry-code">
+        <select name="work_code_id" class="form-select form-select-sm" style="width: 100px;">
+            {% for code in work_codes %}
+            <option value="{{ code.work_code_id }}" 
+                    {% if code.work_code_id == entry.work_code_id %}selected{% endif %}>
+                {{ code.code }}
+            </option>
+            {% endfor %}
+        </select>
+    </span>
+    
+    <span class="entry-hours">
+        <input type="number" 
+               name="hours" 
+               class="form-control form-select-sm" 
+               style="width: 70px;"
+               value="{{ entry.hours }}"
+               step="0.25"
+               min="0.25"
+               max="24"
+               required>
+    </span>
+    
+    <span class="entry-notes" style="flex: 1;">
+        <input type="text" 
+               name="notes" 
+               class="form-control form-control-sm"
+               value="{{ entry.notes or '' }}"
+               placeholder="Notes (optional)">
+    </span>
+    
+    <div class="entry-actions">
+        <button type="submit" class="btn btn-sm btn-success" title="Save">
+            <i class="bi bi-check-lg"></i>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                hx-get="/entries/{{ entry.entry_id }}"
+                hx-target="#entry-{{ entry.entry_id }}"
+                hx-swap="outerHTML"
+                title="Cancel">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    
+    {% if errors %}
+    <div class="alert alert-danger mt-2 mb-0 py-1 px-2 small">
+        {{ errors|join(', ') }}
+    </div>
+    {% endif %}
+</form>
