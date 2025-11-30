@@ -1,0 +1,66 @@
+{# Inline new entry form for team members - appended to a day's entries #}
+<form class="entry-row new-entry-form" id="new-entry-{{ employee_id }}-{{ entry_date.isoformat() }}"
+      hx-post="/team/employee/{{ employee_id }}/entry/inline"
+      hx-target="#new-entry-{{ employee_id }}-{{ entry_date.isoformat() }}"
+      hx-swap="outerHTML">
+    
+    <input type="hidden" name="entry_date" value="{{ entry_date.isoformat() }}">
+    
+    <span class="entry-code">
+        <select name="work_code_id" class="form-select form-select-sm" style="width: 100px;" required>
+            <option value="">Code</option>
+            {% for code in work_codes %}
+            <option value="{{ code.work_code_id }}">{{ code.code }}</option>
+            {% endfor %}
+        </select>
+    </span>
+    
+    {# Time inputs - shown by default #}
+    <span class="entry-time-inputs" id="time-inputs-{{ employee_id }}-{{ entry_date.isoformat() }}">
+        <input type="time" 
+               name="start_time" 
+               class="form-control form-control-sm" 
+               style="width: 85px;"
+               value="08:00"
+               required>
+        <span class="mx-1">-</span>
+        <input type="time" 
+               name="end_time" 
+               class="form-control form-control-sm" 
+               style="width: 85px;"
+               value="16:30"
+               required>
+    </span>
+    
+    <span class="entry-notes" style="flex: 1;">
+        <input type="text" 
+               name="notes" 
+               class="form-control form-control-sm"
+               placeholder="Notes (optional)">
+    </span>
+    
+    <div class="entry-actions">
+        <button type="submit" class="btn btn-sm btn-success" title="Save">
+            <i class="bi bi-check-lg"></i>
+        </button>
+        
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="this.closest('form').remove()"
+                title="Cancel">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+</form>
+
+<style>
+.new-entry-form {
+    background-color: #f8f9fa;
+    border: 2px dashed #dee2e6;
+}
+
+.entry-time-inputs {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+</style>

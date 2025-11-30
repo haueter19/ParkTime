@@ -150,11 +150,11 @@
             <small class="text-muted">Team Members</small>
         </div>
         <div class="col">
-            <div class="h4 mb-0">{{ "%.1f"|format(team_total) }}</div>
+            <div class="h4 mb-0">{{ "%.2f"|format(team_total) }}</div>
             <small class="text-muted">Total Hours</small>
         </div>
         <div class="col">
-            <div class="h4 mb-0">{{ "%.1f"|format(team_total / team_members|length if team_members else 0) }}</div>
+            <div class="h4 mb-0">{{ "%.2f"|format(team_total / team_members|length if team_members else 0) }}</div>
             <small class="text-muted">Avg per Employee</small>
         </div>
     </div>
@@ -182,7 +182,7 @@
                 </span>
             </div>
             <div>
-                <span class="badge bg-secondary me-2">{{ employee_totals.get(member.employee_id, 0)|float|round(1) }} hrs</span>
+                <span class="badge bg-secondary me-2">{{ employee_totals.get(member.employee_id, 0)|float|round(2) }} hrs</span>
                 <a href="/team/employee/{{ member.employee_id }}?week_of={{ week_start.isoformat() }}" 
                    class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-eye"></i> Details
@@ -203,7 +203,7 @@
                     <small>{{ day.strftime('%m/%d') }}</small>
                 </div>
                 {% if day_total > 0 %}
-                <div class="day-hours">{{ "%.1f"|format(day_total) }}</div>
+                <div class="day-hours">{{ "%.2f"|format(day_total) }}</div>
                 {% else %}
                 <div class="no-entries">—</div>
                 {% endif %}

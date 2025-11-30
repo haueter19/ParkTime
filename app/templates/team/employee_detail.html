@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ employee.display_name }} - Team Time{% endblock %}
+{% block title %}{{ employee.first_name }} {{ employee.last_name }} - Team Time{% endblock %}
 
 {% block head %}
 <style>
@@ -78,22 +78,36 @@
         padding: 1rem;
         margin-bottom: 1.5rem;
     }
+    
+    .entry-time {
+        font-family: 'Courier New', monospace;
+        font-size: 0.875rem;
+        color: #495057;
+        width: 150px;
+        flex-shrink: 0;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="mb-4">
-    <a href="/team?week_of={{ week_start.isoformat() }}" class="btn btn-sm btn-outline-secondary mb-2">
-        <i class="bi bi-arrow-left me-1"></i>Back to Team
-    </a>
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <a href="/team?week_of={{ week_start.isoformat() }}" class="btn btn-sm btn-outline-secondary mb-2">
+            <i class="bi bi-arrow-left me-1"></i>Back to Team
+        </a>
+        
+        <h1 class="h3 mb-0">
+            <i class="bi bi-person me-2"></i>{{ employee.first_name }} {{ employee.last_name }}
+        </h1>
+        <small class="text-muted">
+            {{ employee.role|title }} 
+            {% if employee.email %}| {{ employee.email }}{% endif %}
+        </small>
+    </div>
     
-    <h1 class="h3 mb-0">
-        <i class="bi bi-person me-2"></i>{{ employee.display_name }}
-    </h1>
-    <small class="text-muted">
-        {{ employee.role|title }} 
-        {% if employee.email %}| {{ employee.email }}{% endif %}
-    </small>
+    <a href="/team/employee/{{ employee.employee_id }}/entry/new?entry_date={{ week_start.isoformat() }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Add Entry
+    </a>
 </div>
 
 <!-- Week Navigation -->
@@ -154,12 +168,18 @@
                 <span class="badge bg-primary ms-2">Today</span>
                 {% endif %}
             </div>
-            <div>
+            <div class="d-flex align-items-center gap-3">
                 <span class="day-total">{{ "%.1f"|format(day_total) }} hrs</span>
+                <button class="btn btn-sm btn-outline-primary"
+                        hx-get="/team/employee/{{ employee.employee_id }}/entry/inline/new?entry_date={{ day.isoformat() }}"
+                        hx-target="#day-{{ employee.employee_id }}-{{ day.isoformat() }}-entries"
+                        hx-swap="beforeend">
+                    <i class="bi bi-plus"></i>
+                </button>
             </div>
         </div>
         
-        <div>
+        <div id="day-{{ employee.employee_id }}-{{ day.isoformat() }}-entries">
             {% if day_entries %}
                 {% for entry in day_entries %}
                 <div class="entry-row">
@@ -172,7 +192,13 @@
                         </span>
                     </span>
                     
-                    <span class="entry-hours">{{ "%.1f"|format(entry.hours) }} hrs</span>
+                    {% if entry.start_time and entry.end_time %}
+                    <span class="entry-time">
+                        {{ entry.start_time.strftime('%I:%M %p') }} - {{ entry.end_time.strftime('%I:%M %p') }}
+                    </span>
+                    {% endif %}
+                    
+                    <span class="entry-hours">{{ "%.1f"|format(entry.effective_hours) }} hrs</span>
                     
                     <span class="entry-notes">
                         {% if entry.notes %}
@@ -184,7 +210,7 @@
                     
                     <div class="text-muted small">
                         {% if entry.created_by != employee.employee_id %}
-                        <i class="bi bi-pencil-square" title="Entered by {{ entry.creator.display_name }}"></i>
+                        <i class="bi bi-pencil-square" title="Entered by {{ entry.creator.first_name }} {{ entry.creator.last_name }}"></i>
                         {% endif %}
                     </div>
                 </div>
@@ -198,4 +224,14 @@
     </div>
     {% endfor %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Reload page when entry is created to update totals
+    document.body.addEventListener('teamEntryCreated', function() {
+        // Reload the page to update totals
+        window.location.reload();
+    });
+</script>
 {% endblock %}

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Add Entry for {{ employee.first_name }} {{ employee.last_name }} - ParkTime{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/team/employee/{{ employee.employee_id }}" class="btn btn-sm btn-outline-secondary mb-2">
+        <i class="bi bi-arrow-left me-1"></i>Back to {{ employee.first_name }} {{ employee.last_name }}
+    </a>
+    
+    <h1 class="h3 mb-0">
+        <i class="bi bi-plus-circle me-2"></i>Add Entry for {{ employee.first_name }} {{ employee.last_name }}
+    </h1>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                {% if errors %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    <strong>Please fix the following:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for error in errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <form method="post" action="{{ form_action }}">
+                    <div class="mb-3">
+                        <label for="entry_date" class="form-label">Date</label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="entry_date" 
+                               name="entry_date"
+                               value="{{ default_date.isoformat() }}"
+                               required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="work_code_id" class="form-label">Work Code</label>
+                        <select class="form-select" id="work_code_id" name="work_code_id" required>
+                            <option value="">Select a code...</option>
+                            
+                            {% set current_type = None %}
+                            {% for code in work_codes %}
+                                {% if code.code_type != current_type %}
+                                    {% if current_type is not none %}</optgroup>{% endif %}
+                                    {% set current_type = code.code_type %}
+                                    <optgroup label="{{ code.code_type|replace('_', ' ')|title }}">
+                                {% endif %}
+                                
+                                <option value="{{ code.work_code_id }}"
+                                        {% if form_data and form_data.work_code_id == code.work_code_id %}selected{% endif %}>
+                                    {{ code.code }} - {{ code.description }}
+                                </option>
+                            {% endfor %}
+                            {% if current_type is not none %}</optgroup>{% endif %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="start_time" class="form-label">Start Time</label>
+                            <input type="time" 
+                                   class="form-control" 
+                                   id="start_time" 
+                                   name="start_time"
+                                   value="{% if form_data and form_data.start_time %}{{ form_data.start_time }}{% else %}08:00{% endif %}"
+                                   required>
+                            <div class="form-text small">When did work start?</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="end_time" class="form-label">End Time</label>
+                            <input type="time" 
+                                   class="form-control" 
+                                   id="end_time" 
+                                   name="end_time"
+                                   value="{% if form_data and form_data.end_time %}{{ form_data.end_time }}{% else %}16:30{% endif %}"
+                                   required>
+                            <div class="form-text small">When did work end?</div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="bi bi-calculator me-1"></i>
+                        Hours will be calculated automatically from start and end times.
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">Notes <span class="text-muted">(optional)</span></label>
+                        <textarea class="form-control" 
+                                  id="notes" 
+                                  name="notes"
+                                  rows="2"
+                                  placeholder="Project, task description, etc.">{% if form_data and form_data.notes %}{{ form_data.notes }}{% endif %}</textarea>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Create Entry
+                        </button>
+                        <a href="/team/employee/{{ employee.employee_id }}" 
+                           class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-body">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    You are creating this entry on behalf of <strong>{{ employee.first_name }} {{ employee.last_name }}</strong>.
+                    The audit trail will show you as the creator.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

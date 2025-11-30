@@ -1,0 +1,33 @@
+{# Single entry row for team member - used for HTMX display #}
+<div class="entry-row" id="entry-{{ entry.entry_id }}">
+    <span class="entry-code">
+        <span class="badge 
+            {% if entry.work_code.code_type == 'work' %}bg-primary
+            {% elif entry.work_code.code_type == 'leave_paid' %}bg-success
+            {% else %}bg-secondary{% endif %}">
+            {{ entry.work_code.code }}
+        </span>
+    </span>
+    
+    {% if entry.start_time and entry.end_time %}
+    <span class="entry-time">
+        {{ entry.start_time.strftime('%I:%M %p') }} - {{ entry.end_time.strftime('%I:%M %p') }}
+    </span>
+    {% endif %}
+    
+    <span class="entry-hours">{{ "%.2f"|format(entry.effective_hours) }} hrs</span>
+    
+    <span class="entry-notes">
+        {% if entry.notes %}
+        {{ entry.notes }}
+        {% else %}
+        <em class="text-muted">—</em>
+        {% endif %}
+    </span>
+    
+    <div class="text-muted small">
+        {% if entry.created_by != employee.employee_id %}
+        <i class="bi bi-pencil-square" title="Entered by {{ entry.creator.first_name }} {{ entry.creator.last_name }}"></i>
+        {% endif %}
+    </div>
+</div>
