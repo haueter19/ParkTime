@@ -71,10 +71,11 @@ def create_app() -> FastAPI:
     app.state.templates = templates
     
     # Include routers
-    from app.routes import auth, entries, admin
+    from app.routes import auth, entries, admin, team
     app.include_router(auth.router)
     app.include_router(entries.router)
     app.include_router(admin.router)
+    app.include_router(team.router)
     
     # Future routers (uncomment as implemented)
     # from app.routes import employees, work_codes, reports

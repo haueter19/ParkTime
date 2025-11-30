@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}{{ employee.display_name }} - Team Time{% endblock %}
+
+{% block head %}
+<style>
+    .week-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+    
+    .day-card {
+        margin-bottom: 1rem;
+    }
+    
+    .day-card.today {
+        border-left: 4px solid var(--bs-primary);
+    }
+    
+    .day-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .day-header.weekend {
+        background-color: #e9ecef;
+    }
+    
+    .day-total {
+        font-weight: 600;
+    }
+    
+    .entry-row {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .entry-row:last-child {
+        border-bottom: none;
+    }
+    
+    .entry-code {
+        font-weight: 600;
+        width: 80px;
+    }
+    
+    .entry-hours {
+        width: 60px;
+        text-align: right;
+    }
+    
+    .entry-notes {
+        flex: 1;
+        color: #6c757d;
+        margin: 0 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .no-entries {
+        padding: 1rem;
+        color: #6c757d;
+        text-align: center;
+    }
+    
+    .weekly-summary {
+        background-color: #e7f1ff;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/team?week_of={{ week_start.isoformat() }}" class="btn btn-sm btn-outline-secondary mb-2">
+        <i class="bi bi-arrow-left me-1"></i>Back to Team
+    </a>
+    
+    <h1 class="h3 mb-0">
+        <i class="bi bi-person me-2"></i>{{ employee.display_name }}
+    </h1>
+    <small class="text-muted">
+        {{ employee.role|title }} 
+        {% if employee.email %}| {{ employee.email }}{% endif %}
+    </small>
+</div>
+
+<!-- Week Navigation -->
+<div class="week-nav">
+    <a href="/team/employee/{{ employee.employee_id }}?week_of={{ prev_week.isoformat() }}" 
+       class="btn btn-outline-secondary">
+        <i class="bi bi-chevron-left me-1"></i>Previous
+    </a>
+    
+    <div class="text-center">
+        <h5 class="mb-0">
+            {{ week_start.strftime('%b %d') }} - {{ week_end.strftime('%b %d, %Y') }}
+        </h5>
+        {% if today >= week_start and today <= week_end %}
+        <small class="text-muted">Current Week</small>
+        {% endif %}
+    </div>
+    
+    <a href="/team/employee/{{ employee.employee_id }}?week_of={{ next_week.isoformat() }}" 
+       class="btn btn-outline-secondary">
+        Next<i class="bi bi-chevron-right ms-1"></i>
+    </a>
+</div>
+
+<!-- Weekly Summary -->
+<div class="weekly-summary">
+    <div class="row text-center">
+        <div class="col">
+            <div class="h4 mb-0">{{ "%.1f"|format(weekly_total) }}</div>
+            <small class="text-muted">Total Hours</small>
+        </div>
+        <div class="col">
+            <div class="h4 mb-0">{{ entries_by_date|length }}</div>
+            <small class="text-muted">Days Worked</small>
+        </div>
+        <div class="col">
+            {% set entry_count = entries_by_date.values()|map('length')|sum %}
+            <div class="h4 mb-0">{{ entry_count }}</div>
+            <small class="text-muted">Entries</small>
+        </div>
+    </div>
+</div>
+
+<!-- Days -->
+<div id="entries-container">
+    {% for day in week_dates %}
+    {% set is_weekend = day.weekday() >= 5 %}
+    {% set is_today = day == today %}
+    {% set day_entries = entries_by_date.get(day, []) %}
+    {% set day_total = daily_totals.get(day, 0) %}
+    
+    <div class="card day-card {{ 'today' if is_today else '' }}">
+        <div class="day-header {{ 'weekend' if is_weekend else '' }}">
+            <div>
+                <strong>{{ day.strftime('%A') }}</strong>
+                <span class="text-muted ms-2">{{ day.strftime('%b %d') }}</span>
+                {% if is_today %}
+                <span class="badge bg-primary ms-2">Today</span>
+                {% endif %}
+            </div>
+            <div>
+                <span class="day-total">{{ "%.1f"|format(day_total) }} hrs</span>
+            </div>
+        </div>
+        
+        <div>
+            {% if day_entries %}
+                {% for entry in day_entries %}
+                <div class="entry-row">
+                    <span class="entry-code">
+                        <span class="badge 
+                            {% if entry.work_code.code_type == 'work' %}bg-primary
+                            {% elif entry.work_code.code_type == 'leave_paid' %}bg-success
+                            {% else %}bg-secondary{% endif %}">
+                            {{ entry.work_code.code }}
+                        </span>
+                    </span>
+                    
+                    <span class="entry-hours">{{ "%.1f"|format(entry.hours) }} hrs</span>
+                    
+                    <span class="entry-notes">
+                        {% if entry.notes %}
+                        {{ entry.notes }}
+                        {% else %}
+                        <em class="text-muted">—</em>
+                        {% endif %}
+                    </span>
+                    
+                    <div class="text-muted small">
+                        {% if entry.created_by != employee.employee_id %}
+                        <i class="bi bi-pencil-square" title="Entered by {{ entry.creator.display_name }}"></i>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="no-entries">
+                No entries
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
