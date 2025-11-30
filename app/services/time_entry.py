@@ -97,7 +97,8 @@ class TimeEntryService:
             created_by=self.current_user_id,
         )
         
-        # Set times and compute hours
+        # Set entry_date (required) and times, then compute hours
+        entry.entry_date = start_time.date()
         entry.set_times_and_compute_hours(start_time, end_time)
         
         self.db.add(entry)
@@ -152,6 +153,8 @@ class TimeEntryService:
         
         if start_time is not None or end_time is not None:
             self._validate_times(new_start, new_end)
+            # Update the date to match the new start_time
+            entry.entry_date = new_start.date()
             entry.set_times_and_compute_hours(new_start, new_end)
         
         if notes is not None:
