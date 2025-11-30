@@ -23,6 +23,16 @@ from app.services.auth import AuthService
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+def parse_optional_int(value: Optional[str]) -> Optional[int]:
+    """Convert form string to optional int, handling empty strings."""
+    if value is None or value.strip() == "":
+        return None
+    try:
+        return int(value)
+    except (ValueError, AttributeError):
+        return None
+    
+
 # =============================================================================
 # Employee Management
 # =============================================================================
@@ -37,7 +47,7 @@ def list_employees(
     """List all employees."""
     templates = request.app.state.templates
     
-    query = select(Employee).order_by(Employee.display_name)
+    query = select(Employee).order_by(Employee.last_name, Employee.first_name)
     if not show_inactive:
         query = query.where(Employee.is_active == True)
     
@@ -74,7 +84,7 @@ def new_employee_form(
         select(Employee)
         .where(Employee.is_active == True)
         .where(Employee.role.in_(["manager", "admin"]))
-        .order_by(Employee.display_name)
+        .order_by(Employee.last_name, Employee.first_name)
     ).scalars().all()
     
     return templates.TemplateResponse(
@@ -96,13 +106,16 @@ def create_employee(
     display_name: str = Form(...),
     email: Optional[str] = Form(None),
     role: str = Form("employee"),
-    manager_id: Optional[int] = Form(None),
+    manager_id: Optional[str] = Form(None),
     user: Employee = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """Create a new employee."""
     templates = request.app.state.templates
     errors = []
+    
+    # Parse manager_id from string to int
+    parsed_manager_id = parse_optional_int(manager_id)  # ADD THIS LINE
     
     # Validate username uniqueness
     existing = db.execute(
@@ -137,7 +150,7 @@ def create_employee(
                     "display_name": display_name,
                     "email": email,
                     "role": role,
-                    "manager_id": manager_id,
+                    "manager_id": parsed_manager_id,  # CHANGED: use parsed value
                 },
             },
             status_code=400,
@@ -149,7 +162,7 @@ def create_employee(
         display_name=display_name.strip(),
         email=email.strip() if email else None,
         role=role,
-        manager_id=manager_id if manager_id else None,
+        manager_id=parsed_manager_id,  # CHANGED: use parsed value
         is_active=True,
         created_at=datetime.utcnow(),
         created_by=user.employee_id,
@@ -165,6 +178,94 @@ def create_employee(
     db.commit()
     
     return RedirectResponse(url="/admin/employees", status_code=302)
+
+
+@router.post("/employees/{employee_id}", response_class=HTMLResponse)
+def update_employee(
+    request: Request,
+    employee_id: int,
+    username: str = Form(...),
+    display_name: str = Form(...),
+    email: Optional[str] = Form(None),
+    role: str = Form("employee"),
+    manager_id: Optional[str] = Form(None),  # CHANGED: was Optional[int]
+    is_active: bool = Form(True),
+    user: Employee = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Update an employee."""
+    templates = request.app.state.templates
+    
+    # Parse manager_id from string to int
+    parsed_manager_id = parse_optional_int(manager_id)  # ADD THIS LINE
+    
+    employee = db.execute(
+        select(Employee).where(Employee.employee_id == employee_id)
+    ).scalar_one_or_none()
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    errors = []
+    
+    # Validate username uniqueness (excluding self)
+    existing = db.execute(
+        select(Employee)
+        .where(Employee.username == username)
+        .where(Employee.employee_id != employee_id)
+    ).scalar_one_or_none()
+    
+    if existing:
+        errors.append(f"Username '{username}' is already taken")
+    
+    # Prevent self-demotion from admin
+    if employee_id == user.employee_id and role != "admin":
+        errors.append("You cannot change your own role from admin")
+    
+    # Prevent deactivating self
+    if employee_id == user.employee_id and not is_active:
+        errors.append("You cannot deactivate your own account")
+    
+    if errors:
+        managers = db.execute(
+            select(Employee)
+            .where(Employee.is_active == True)
+            .where(Employee.role.in_(["manager", "admin"]))
+            .where(Employee.employee_id != employee_id)
+            .order_by(Employee.display_name)
+        ).scalars().all()
+        
+        return templates.TemplateResponse(
+            "admin/employees/form.html",
+            {
+                "request": request,
+                "user": user,
+                "employee": employee,
+                "managers": managers,
+                "errors": errors,
+            },
+            status_code=400,
+        )
+    
+    # Capture old state for audit
+    audit = AuditService(db, user.employee_id, request.client.host if request.client else None)
+    old_state = audit.capture_state(employee)
+    
+    # Update employee
+    employee.username = username.strip().lower()
+    employee.display_name = display_name.strip()
+    employee.email = email.strip() if email else None
+    employee.role = role
+    employee.manager_id = parsed_manager_id  # CHANGED: use parsed value
+    employee.is_active = is_active
+    
+    # Audit log
+    audit.log_update(employee, old_state)
+    
+    db.commit()
+    
+    return RedirectResponse(url="/admin/employees", status_code=302)
+
 
 
 @router.get("/employees/{employee_id}", response_class=HTMLResponse)
@@ -231,7 +332,7 @@ def edit_employee_form(
         .where(Employee.is_active == True)
         .where(Employee.role.in_(["manager", "admin"]))
         .where(Employee.employee_id != employee_id)  # Can't be own manager
-        .order_by(Employee.display_name)
+        .order_by(Employee.last_name, Employee.first_name)
     ).scalars().all()
     
     return templates.TemplateResponse(
@@ -244,90 +345,6 @@ def edit_employee_form(
             "form_action": f"/admin/employees/{employee_id}",
         },
     )
-
-
-@router.post("/employees/{employee_id}", response_class=HTMLResponse)
-def update_employee(
-    request: Request,
-    employee_id: int,
-    username: str = Form(...),
-    display_name: str = Form(...),
-    email: Optional[str] = Form(None),
-    role: str = Form("employee"),
-    manager_id: Optional[int] = Form(None),
-    is_active: bool = Form(True),
-    user: Employee = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
-    """Update an employee."""
-    templates = request.app.state.templates
-    
-    employee = db.execute(
-        select(Employee).where(Employee.employee_id == employee_id)
-    ).scalar_one_or_none()
-    
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
-    errors = []
-    
-    # Validate username uniqueness (excluding self)
-    existing = db.execute(
-        select(Employee)
-        .where(Employee.username == username)
-        .where(Employee.employee_id != employee_id)
-    ).scalar_one_or_none()
-    
-    if existing:
-        errors.append(f"Username '{username}' is already taken")
-    
-    # Prevent self-demotion from admin
-    if employee_id == user.employee_id and role != "admin":
-        errors.append("You cannot change your own role from admin")
-    
-    # Prevent deactivating self
-    if employee_id == user.employee_id and not is_active:
-        errors.append("You cannot deactivate your own account")
-    
-    if errors:
-        managers = db.execute(
-            select(Employee)
-            .where(Employee.is_active == True)
-            .where(Employee.role.in_(["manager", "admin"]))
-            .where(Employee.employee_id != employee_id)
-            .order_by(Employee.display_name)
-        ).scalars().all()
-        
-        return templates.TemplateResponse(
-            "admin/employees/form.html",
-            {
-                "request": request,
-                "user": user,
-                "employee": employee,
-                "managers": managers,
-                "errors": errors,
-            },
-            status_code=400,
-        )
-    
-    # Capture old state for audit
-    audit = AuditService(db, user.employee_id, request.client.host if request.client else None)
-    old_state = audit.capture_state(employee)
-    
-    # Update employee
-    employee.username = username.strip().lower()
-    employee.display_name = display_name.strip()
-    employee.email = email.strip() if email else None
-    employee.role = role
-    employee.manager_id = manager_id if manager_id else None
-    employee.is_active = is_active
-    
-    # Audit log
-    audit.log_update(employee, old_state)
-    
-    db.commit()
-    
-    return RedirectResponse(url="/admin/employees", status_code=302)
 
 
 @router.post("/employees/{employee_id}/reset-password", response_class=HTMLResponse)
@@ -758,7 +775,7 @@ def view_audit_log(
     ).scalars().all()
     
     employees = db.execute(
-        select(Employee).where(Employee.is_active == True).order_by(Employee.display_name)
+        select(Employee).where(Employee.is_active == True).order_by(Employee.last_name, Employee.first_name)
     ).scalars().all()
     
     return templates.TemplateResponse(

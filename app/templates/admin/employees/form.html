@@ -39,14 +39,28 @@
                         <div class="form-text">Used for login. Letters, numbers, underscores, periods only.</div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="display_name" class="form-label">Display Name</label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="display_name" 
-                               name="display_name"
-                               value="{{ employee.display_name if employee else (form_data.display_name if form_data else '') }}"
-                               required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">First Name</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="first_name" 
+                                   name="first_name"
+                                   value="{{ employee.first_name if employee else (form_data.first_name if form_data else '') }}"
+                                   required
+                                   maxlength="75">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Last Name</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="last_name" 
+                                   name="last_name"
+                                   value="{{ employee.last_name if employee else (form_data.last_name if form_data else '') }}"
+                                   required
+                                   maxlength="75">
+                        </div>
                     </div>
                     
                     <div class="mb-3">
