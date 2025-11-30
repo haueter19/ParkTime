@@ -1,7 +1,7 @@
 # ParkTime - Time Entry Routes
 # CRUD operations for time entries with HTMX support
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Optional
 
@@ -156,7 +156,9 @@ def create_entry(
     request: Request,
     entry_date: str = Form(...),
     work_code_id: int = Form(...),
-    hours: str = Form(...),
+    # Require start_time and end_time (we no longer support hours-only mode)
+    start_time: str = Form(...),
+    end_time: str = Form(...),
     notes: Optional[str] = Form(None),
     user: Employee = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -173,16 +175,16 @@ def create_entry(
         errors.append("Invalid date format")
         parsed_date = date.today()
     
-    # Validate hours
+    # parse times (HH:MM)
     try:
-        parsed_hours = Decimal(hours)
-        if parsed_hours <= 0:
-            errors.append("Hours must be positive")
-        if parsed_hours > 24:
-            errors.append("Hours cannot exceed 24")
-    except InvalidOperation:
-        errors.append("Invalid hours value")
-        parsed_hours = Decimal("0")
+        st = time.fromisoformat(start_time)
+        et = time.fromisoformat(end_time)
+        parsed_start = datetime.combine(parsed_date, st)
+        parsed_end = datetime.combine(parsed_date, et)
+        if parsed_end <= parsed_start:
+            errors.append("End time must be after start time")
+    except Exception:
+        errors.append("Invalid time format")
     
     if errors:
         return templates.TemplateResponse(
@@ -198,7 +200,8 @@ def create_entry(
                 "errors": errors,
                 "form_data": {
                     "work_code_id": work_code_id,
-                    "hours": hours,
+                    "start_time": start_time,
+                    "end_time": end_time,
                     "notes": notes,
                 },
             },
@@ -213,11 +216,12 @@ def create_entry(
     )
     
     try:
+        # Call service with start/end datetimes, computing them for hours-based
         entry = service.create_entry(
             employee_id=user.employee_id,
             work_code_id=work_code_id,
-            entry_date=parsed_date,
-            hours=parsed_hours,
+            start_time=parsed_start,
+            end_time=parsed_end,
             notes=notes.strip() if notes else None,
         )
         db.commit()
@@ -352,7 +356,9 @@ def update_entry(
     entry_id: int,
     entry_date: str = Form(...),
     work_code_id: int = Form(...),
-    hours: str = Form(...),
+    # allow editing times directly
+    start_time: Optional[str] = Form(None),
+    end_time: Optional[str] = Form(None),
     notes: Optional[str] = Form(None),
     user: Employee = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -382,16 +388,25 @@ def update_entry(
         errors.append("Invalid date format")
         parsed_date = entry.entry_date
     
-    # Validate hours
-    try:
-        parsed_hours = Decimal(hours)
-        if parsed_hours <= 0:
-            errors.append("Hours must be positive")
-        if parsed_hours > 24:
-            errors.append("Hours cannot exceed 24")
-    except InvalidOperation:
-        errors.append("Invalid hours value")
-        parsed_hours = entry.hours
+    # Prepare defaults
+    parsed_start = None
+    parsed_end = None
+    parsed_start = None
+    parsed_end = None
+    if start_time or end_time:
+        if not start_time or not end_time:
+            errors.append("Both start and end time must be provided to edit times")
+        else:
+            try:
+                st = time.fromisoformat(start_time)
+                et = time.fromisoformat(end_time)
+                parsed_start = datetime.combine(parsed_date, st)
+                parsed_end = datetime.combine(parsed_date, et)
+                if parsed_end <= parsed_start:
+                    errors.append("End time must be after start time")
+            except Exception:
+                errors.append("Invalid time format")
+    # no hours-only support: nothing else to parse
     
     if errors:
         work_codes = get_work_codes(db)
@@ -428,13 +443,23 @@ def update_entry(
     )
     
     try:
-        updated_entry = service.update_entry(
-            entry_id=entry_id,
-            entry_date=parsed_date,
-            work_code_id=work_code_id,
-            hours=parsed_hours,
-            notes=notes.strip() if notes else None,
-        )
+        # Decide how to update: times provided -> update times; hours provided -> compute times
+        if parsed_start and parsed_end:
+            updated_entry = service.update_entry(
+                entry_id=entry_id,
+                work_code_id=work_code_id,
+                start_time=parsed_start,
+                end_time=parsed_end,
+                notes=notes.strip() if notes else None,
+            )
+        else:
+            # No times provided - only update work code / notes
+            updated_entry = service.update_entry(
+                entry_id=entry_id,
+                work_code_id=work_code_id,
+                notes=notes.strip() if notes else None,
+            )
+        # done - either updated above or in the else branch
         db.commit()
         
         # Refresh to get updated relationships

@@ -15,20 +15,27 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.sql import table, column
 
-from app.config import get_settings
-
 # revision identifiers, used by Alembic.
 revision: str = '003'
 down_revision: Union[str, None] = '002'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-# Get schema from config
-settings = get_settings()
-SCHEMA = settings.db_schema
+
+# Do not import app.config at module import time; resolve schema inside
+# upgrade/downgrade so 'alembic heads' can import this file without needing
+# the application package on PYTHONPATH.
 
 
 def upgrade() -> None:
+    # Determine schema at runtime
+    try:
+        from app.config import get_settings
+        settings = get_settings()
+        SCHEMA = settings.db_schema
+    except Exception:
+        SCHEMA = None
+
     # Add new columns as nullable first
     op.add_column('employees', sa.Column('first_name', sa.String(length=75), nullable=True), schema=SCHEMA)
     op.add_column('employees', sa.Column('last_name', sa.String(length=75), nullable=True), schema=SCHEMA)
@@ -75,6 +82,13 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    try:
+        from app.config import get_settings
+        settings = get_settings()
+        SCHEMA = settings.db_schema
+    except Exception:
+        SCHEMA = None
+
     # Add display_name back
     op.add_column('employees', sa.Column('display_name', sa.String(length=150), nullable=True), schema=SCHEMA)
     

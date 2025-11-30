@@ -2,6 +2,28 @@
 
 {% block title %}{{ 'Edit Entry' if entry else 'New Entry' }} - ParkTime{% endblock %}
 
+{% block head %}
+<style>
+    .entry-mode-toggle {
+        margin-bottom: 1.5rem;
+    }
+    
+    .time-fields, .hours-field {
+        display: none;
+    }
+    
+    .time-fields.active, .hours-field.active {
+        display: block;
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
@@ -25,11 +47,9 @@
                 </div>
                 {% endif %}
                 
-                <form method="post" action="{{ form_action }}">
-                    {% if form_method == 'put' %}
-                    {# HTML forms only support GET/POST, but our route handles both #}
-                    {% endif %}
-                    
+                <!-- Time-based entry only (hours-only mode has been removed) -->
+                
+                <form method="post" action="{{ form_action }}" id="entry-form">
                     <div class="mb-3">
                         <label for="entry_date" class="form-label">Date</label>
                         <input type="date" 
@@ -63,19 +83,35 @@
                         </select>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="hours" class="form-label">Hours</label>
-                        <input type="number" 
-                               class="form-control" 
-                               id="hours" 
-                               name="hours"
-                               value="{{ entry.hours if entry else (form_data.hours if form_data else '8.0') }}"
-                               step="0.25"
-                               min="0.25"
-                               max="24"
-                               required>
-                        <div class="form-text">Enter hours in increments of 0.25 (15 minutes)</div>
+                    <!-- Time-based entry fields -->
+                    <div class="time-fields {% if not entry or (entry.start_time and entry.end_time) %}active{% endif %}" id="time-fields">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="start_time" class="form-label">Start Time</label>
+                                <input type="time" 
+                                       class="form-control" 
+                                       id="start_time" 
+                                       name="start_time"
+                                       value="{% if entry and entry.start_time %}{{ entry.start_time.strftime('%H:%M') }}{% elif form_data and form_data.start_time %}{{ form_data.start_time }}{% else %}08:00{% endif %}">
+                                <div class="help-text">When did work start?</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="end_time" class="form-label">End Time</label>
+                                <input type="time" 
+                                       class="form-control" 
+                                       id="end_time" 
+                                       name="end_time"
+                                       value="{% if entry and entry.end_time %}{{ entry.end_time.strftime('%H:%M') }}{% elif form_data and form_data.end_time %}{{ form_data.end_time }}{% else %}16:30{% endif %}">
+                                <div class="help-text">When did work end?</div>
+                            </div>
+                        </div>
+                        <div class="alert alert-info py-2 small">
+                            <i class="bi bi-calculator me-1"></i>
+                            Hours will be calculated automatically from start and end times.
+                        </div>
                     </div>
+                    
                     
                     <div class="mb-4">
                         <label for="notes" class="form-label">Notes <span class="text-muted">(optional)</span></label>
@@ -85,6 +121,8 @@
                                   rows="2"
                                   placeholder="Project, task description, etc.">{{ entry.notes if entry else (form_data.notes if form_data else '') }}</textarea>
                     </div>
+                    
+                    <!-- hours-only mode removed: form will always send start_time and end_time -->
                     
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
@@ -114,4 +152,8 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+// No JS toggle — only time-based entries are supported
+</script>
 {% endblock %}

@@ -9,7 +9,13 @@
         </span>
     </span>
     
-    <span class="entry-hours">{{ "%.1f"|format(entry.hours) }} hrs</span>
+    {% if entry.start_time and entry.end_time %}
+    <span class="entry-time">
+        {{ entry.start_time.strftime('%I:%M %p') }} - {{ entry.end_time.strftime('%I:%M %p') }}
+    </span>
+    {% endif %}
+    
+    <span class="entry-hours">{{ "%.2f"|format(entry.effective_hours) }} hrs</span>
     
     <span class="entry-notes">
         {% if entry.notes %}

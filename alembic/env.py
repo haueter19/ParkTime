@@ -8,12 +8,20 @@ This module configures Alembic to:
 """
 
 from logging.config import fileConfig
+import os
+import sys
 
 import sqlalchemy as sa
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+
+# Ensure the project root is on sys.path so `from app.*` imports work
+# when running alembic from the repository directory.
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 # Import app config and models
 from app.config import get_settings

@@ -113,7 +113,16 @@ def cmd_reset():
 
 def cmd_setpassword():
     """Set password for a user."""
-    from app.services.auth import AuthService
+    try:
+        from app.services.auth import AuthService
+    except ModuleNotFoundError as e:
+        missing = e.name
+        print(f"ERROR: required package '{missing}' is not installed.")
+        print("Please install project dependencies and try again:")
+        print("  pip install -r requirements.txt")
+        print("Or install just the missing package:")
+        print(f"  pip install {missing}")
+        return False
     from app.models.employee import Employee
     from sqlalchemy import select
     

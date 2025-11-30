@@ -17,20 +17,25 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-from app.config import get_settings
-
 # revision identifiers, used by Alembic.
 revision: str = '001'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-# Get schema from config
-settings = get_settings()
-SCHEMA = settings.db_schema  # Will be None for dbo
+# Schema will be determined at runtime inside upgrade/downgrade so importing
+# the application package isn't required when alembic enumerates revisions.
 
 
 def upgrade() -> None:
+    # Determine schema at runtime (avoid importing app.config at module import time)
+    try:
+        from app.config import get_settings
+        settings = get_settings()
+        SCHEMA = settings.db_schema
+    except Exception:
+        SCHEMA = None
+
     # Create schema if specified and doesn't exist
     if SCHEMA:
         op.execute(f"IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '{SCHEMA}') EXEC('CREATE SCHEMA {SCHEMA}')")
@@ -166,6 +171,13 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    try:
+        from app.config import get_settings
+        settings = get_settings()
+        SCHEMA = settings.db_schema
+    except Exception:
+        SCHEMA = None
+
     op.drop_table('user_sessions', schema=SCHEMA)
     op.drop_table('audit_log', schema=SCHEMA)
     op.drop_table('business_rules', schema=SCHEMA)

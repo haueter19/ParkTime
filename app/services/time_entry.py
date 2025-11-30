@@ -1,7 +1,7 @@
 # ParkTime - Time Entry Service
 # Business logic for time entry CRUD with audit logging
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Optional
 
@@ -23,24 +23,22 @@ class TimeEntryService:
     Usage:
         service = TimeEntryService(db, current_user_id, request.client.host)
         
-        # Create
+        # Create with times
         entry = service.create_entry(
             employee_id=5,
             work_code_id=1,
-            entry_date=date(2025, 1, 15),
-            hours=Decimal("8.0"),
+            start_time=datetime(2025, 1, 15, 8, 0),
+            end_time=datetime(2025, 1, 15, 16, 0),
             notes="Regular shift"
         )
         
-        # Update
+        # Update times
         entry = service.update_entry(
             entry_id=42,
-            hours=Decimal("8.5"),
+            start_time=datetime(2025, 1, 15, 8, 0),
+            end_time=datetime(2025, 1, 15, 16, 30),
             notes="Updated - stayed late"
         )
-        
-        # Delete (soft)
-        service.delete_entry(entry_id=42)
     """
     
     def __init__(
@@ -66,8 +64,8 @@ class TimeEntryService:
         self,
         employee_id: int,
         work_code_id: int,
-        entry_date: date,
-        hours: Decimal,
+        start_time: datetime,
+        end_time: datetime,
         notes: Optional[str] = None,
     ) -> TimeEntry:
         """
@@ -76,8 +74,8 @@ class TimeEntryService:
         Args:
             employee_id: Whose time this is
             work_code_id: Type of time (REG, OT, SICK, etc.)
-            entry_date: Date of the entry
-            hours: Number of hours
+            start_time: When work started (full datetime)
+            end_time: When work ended (full datetime)
             notes: Optional notes
             
         Returns:
@@ -89,17 +87,18 @@ class TimeEntryService:
         # Validation
         self._validate_employee_exists(employee_id)
         self._validate_work_code_exists(work_code_id)
-        self._validate_hours(hours)
+        self._validate_times(start_time, end_time)
         
         # Create the entry
         entry = TimeEntry(
             employee_id=employee_id,
             work_code_id=work_code_id,
-            entry_date=entry_date,
-            hours=hours,
             notes=notes,
             created_by=self.current_user_id,
         )
+        
+        # Set times and compute hours
+        entry.set_times_and_compute_hours(start_time, end_time)
         
         self.db.add(entry)
         self.db.flush()  # Get the entry_id
@@ -113,8 +112,8 @@ class TimeEntryService:
         self,
         entry_id: int,
         work_code_id: Optional[int] = None,
-        entry_date: Optional[date] = None,
-        hours: Optional[Decimal] = None,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
         notes: Optional[str] = None,
     ) -> TimeEntry:
         """
@@ -125,8 +124,8 @@ class TimeEntryService:
         Args:
             entry_id: ID of entry to update
             work_code_id: New work code (optional)
-            entry_date: New date (optional)
-            hours: New hours (optional)
+            start_time: New start time (optional)
+            end_time: New end time (optional)
             notes: New notes (optional, pass empty string to clear)
             
         Returns:
@@ -147,12 +146,13 @@ class TimeEntryService:
             self._validate_work_code_exists(work_code_id)
             entry.work_code_id = work_code_id
         
-        if entry_date is not None:
-            entry.entry_date = entry_date
+        # Handle time updates - if either time changes, both must be provided or we use existing
+        new_start = start_time if start_time is not None else entry.start_time
+        new_end = end_time if end_time is not None else entry.end_time
         
-        if hours is not None:
-            self._validate_hours(hours)
-            entry.hours = hours
+        if start_time is not None or end_time is not None:
+            self._validate_times(new_start, new_end)
+            entry.set_times_and_compute_hours(new_start, new_end)
         
         if notes is not None:
             entry.notes = notes if notes else None
@@ -247,9 +247,16 @@ class TimeEntryService:
         if not exists:
             raise ValueError(f"Work code {work_code_id} not found or inactive")
     
-    def _validate_hours(self, hours: Decimal) -> None:
-        """Validate hours is reasonable."""
-        if hours <= 0:
-            raise ValueError("Hours must be positive")
-        if hours > 24:
-            raise ValueError("Hours cannot exceed 24 per entry")
+    def _validate_times(self, start_time: datetime, end_time: datetime) -> None:
+        """Validate start and end times are reasonable."""
+        if end_time <= start_time:
+            raise ValueError("End time must be after start time")
+        
+        # Calculate duration in hours
+        duration_hours = (end_time - start_time).total_seconds() / 3600
+        
+        if duration_hours > 24:
+            raise ValueError("Entry duration cannot exceed 24 hours")
+        
+        if duration_hours < 0.25:  # 15 minutes minimum
+            raise ValueError("Entry duration must be at least 15 minutes")

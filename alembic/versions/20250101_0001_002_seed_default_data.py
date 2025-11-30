@@ -16,60 +16,63 @@ import sqlalchemy as sa
 from sqlalchemy.sql import table, column
 from datetime import datetime
 
-from app.config import get_settings
-
 # revision identifiers, used by Alembic.
 revision: str = '002'
 down_revision: Union[str, None] = '001'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-# Get schema from config
-settings = get_settings()
-SCHEMA = settings.db_schema
-
-
-# Define tables for data operations
-employees = table(
-    'employees',
-    column('employee_id', sa.Integer),
-    column('username', sa.String),
-    column('display_name', sa.String),
-    column('email', sa.String),
-    column('role', sa.String),
-    column('is_active', sa.Boolean),
-    column('created_at', sa.DateTime),
-    schema=SCHEMA,
-)
-
-work_codes = table(
-    'work_codes',
-    column('work_code_id', sa.Integer),
-    column('code', sa.String),
-    column('description', sa.String),
-    column('code_type', sa.String),
-    column('sort_order', sa.Integer),
-    column('is_active', sa.Boolean),
-    column('created_at', sa.DateTime),
-    column('created_by', sa.Integer),
-    schema=SCHEMA,
-)
-
-business_rules = table(
-    'business_rules',
-    column('rule_id', sa.Integer),
-    column('rule_key', sa.String),
-    column('rule_value', sa.String),
-    column('description', sa.String),
-    column('value_type', sa.String),
-    column('valid_options', sa.String),
-    column('modified_at', sa.DateTime),
-    column('modified_by', sa.Integer),
-    schema=SCHEMA,
-)
+# NOTE: Avoid importing app.config at module import time; we'll determine
+# schema inside upgrade()/downgrade() so alembic can import this file.
 
 
 def upgrade() -> None:
+    # Determine schema at runtime
+    try:
+        from app.config import get_settings
+        settings = get_settings()
+        SCHEMA = settings.db_schema
+    except Exception:
+        SCHEMA = None
+
+    # Define tables for data operations using the resolved schema
+    employees = table(
+        'employees',
+        column('employee_id', sa.Integer),
+        column('username', sa.String),
+        column('display_name', sa.String),
+        column('email', sa.String),
+        column('role', sa.String),
+        column('is_active', sa.Boolean),
+        column('created_at', sa.DateTime),
+        schema=SCHEMA,
+    )
+
+    work_codes = table(
+        'work_codes',
+        column('work_code_id', sa.Integer),
+        column('code', sa.String),
+        column('description', sa.String),
+        column('code_type', sa.String),
+        column('sort_order', sa.Integer),
+        column('is_active', sa.Boolean),
+        column('created_at', sa.DateTime),
+        column('created_by', sa.Integer),
+        schema=SCHEMA,
+    )
+
+    business_rules = table(
+        'business_rules',
+        column('rule_id', sa.Integer),
+        column('rule_key', sa.String),
+        column('rule_value', sa.String),
+        column('description', sa.String),
+        column('value_type', sa.String),
+        column('valid_options', sa.String),
+        column('modified_at', sa.DateTime),
+        column('modified_by', sa.Integer),
+        schema=SCHEMA,
+    )
     # Insert admin user first (ID will be 1)
     op.bulk_insert(
         employees,
@@ -119,6 +122,13 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    try:
+        from app.config import get_settings
+        settings = get_settings()
+        SCHEMA = settings.db_schema
+    except Exception:
+        SCHEMA = None
+
     # Delete in reverse order of foreign key dependencies
     table_prefix = f"{SCHEMA}." if SCHEMA else ""
     op.execute(f"DELETE FROM {table_prefix}business_rules")

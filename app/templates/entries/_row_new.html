@@ -1,5 +1,5 @@
 {# Inline new entry form - appended to a day's entries #}
-<form class="entry-row" id="new-entry-{{ entry_date.isoformat() }}"
+<form class="entry-row new-entry-form" id="new-entry-{{ entry_date.isoformat() }}"
       hx-post="/entries"
       hx-target="#new-entry-{{ entry_date.isoformat() }}"
       hx-swap="outerHTML">
@@ -15,17 +15,23 @@
         </select>
     </span>
     
-    <span class="entry-hours">
-        <input type="number" 
-               name="hours" 
-               class="form-control form-select-sm" 
-               style="width: 70px;"
-               placeholder="Hrs"
-               step="0.25"
-               min="0.25"
-               max="24"
+    {# Time inputs - shown by default #}
+    <span class="entry-time-inputs" id="time-inputs-{{ entry_date.isoformat() }}">
+        <input type="time" 
+               name="start_time" 
+               class="form-control form-control-sm" 
+               style="width: 85px;"
+               value="08:00"
+               required>
+        <span class="mx-1">-</span>
+        <input type="time" 
+               name="end_time" 
+               class="form-control form-control-sm" 
+               style="width: 85px;"
+               value="16:30"
                required>
     </span>
+    
     
     <span class="entry-notes" style="flex: 1;">
         <input type="text" 
@@ -35,9 +41,12 @@
     </span>
     
     <div class="entry-actions">
+        {# No hours-only mode — only time inputs are used #}
+        
         <button type="submit" class="btn btn-sm btn-success" title="Save">
             <i class="bi bi-check-lg"></i>
         </button>
+        
         <button type="button" class="btn btn-sm btn-outline-secondary"
                 onclick="this.closest('form').remove()"
                 title="Cancel">
@@ -45,3 +54,22 @@
         </button>
     </div>
 </form>
+
+<!-- Inline new entries only support time inputs now -->
+
+<style>
+.new-entry-form {
+    background-color: #f8f9fa;
+    border: 2px dashed #dee2e6;
+}
+
+.entry-time-inputs {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.entry-hours-input {
+    display: inline-flex;
+}
+</style>
