@@ -216,6 +216,17 @@ class TimeEntry(Base):
         calculated = self.calculated_hours
         if calculated is not None:
             self.hours = calculated
+
+    def set_times_and_compute_hours(self, start_time: datetime, end_time: datetime) -> None:
+        """
+        Set start_time/end_time and compute hours from them, in one call.
+
+        This is a convenience used by services so they can pass datetimes
+        directly and let the model persist the computed hours value.
+        """
+        self.start_time = start_time
+        self.end_time = end_time
+        self.calculate_and_set_hours()
     
     def soft_delete(self, deleted_by_id: int) -> None:
         """Mark this entry as deleted."""
